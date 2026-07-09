@@ -16,108 +16,139 @@ export default function ProductDetail() {
   }, [])
 
   async function fetchProduct() {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('id', id)
-      .single()
-
+    const { data, error } = await supabase.from('products').select('*').eq('id', id).single()
     if (!error) setProduct(data)
     setLoading(false)
   }
 
   function toggleWishlist() {
     const exists = wishlist.find(w => w.id === product.id)
-    let updated
-    if (exists) {
-      updated = wishlist.filter(w => w.id !== product.id)
-    } else {
-      updated = [...wishlist, product]
-    }
+    const updated = exists ? wishlist.filter(w => w.id !== product.id) : [...wishlist, product]
     setWishlist(updated)
     localStorage.setItem('wishlist', JSON.stringify(updated))
   }
 
-  function isWishlisted() {
-    return wishlist.some(w => w.id === product?.id)
-  }
+  const isWishlisted = wishlist.some(w => w.id === product?.id)
 
-  if (loading) return <p style={{ padding: '2rem' }}>Loading...</p>
-  if (!product) return <p style={{ padding: '2rem' }}>Product not found.</p>
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--bg)' }}>
+      <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
+    </div>
+  )
+
+  if (!product) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--bg)' }}>
+      <p style={{ color: 'var(--text-muted)' }}>Product not found.</p>
+    </div>
+  )
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '1.5rem' }}>
-      <button
-        onClick={() => navigate('/')}
-        style={{ background: 'none', border: '1px solid #ccc', padding: '0.4rem 0.8rem', borderRadius: '8px', cursor: 'pointer', marginBottom: '1.5rem' }}
-      >
-        ← Back
-      </button>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', maxWidth: '500px', margin: '0 auto', position: 'relative' }}>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-        {/* Image */}
-        <div style={{ position: 'relative' }}>
-          {product.image_url
-            ? <img src={product.image_url} alt={product.name} style={{ width: '100%', borderRadius: '12px', objectFit: 'cover' }} />
-            : <div style={{ width: '100%', height: '400px', background: '#f5f5f5', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>No image</div>
-          }
-          {product.status === 'sold' && (
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ color: 'white', fontSize: '2rem', fontWeight: 'bold' }}>SOLD</span>
-            </div>
-          )}
-        </div>
+      {/* Full bleed image */}
+      <div style={{ position: 'relative', width: '100%', aspectRatio: '3/4', maxHeight: '65vh', overflow: 'hidden' }}>
+        {product.image_url
+          ? <img src={product.image_url} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          : <div style={{ width: '100%', height: '100%', background: 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>No image</div>
+        }
 
-        {/* Details */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <h1 style={{ margin: 0, fontSize: '1.5rem' }}>{product.name}</h1>
-
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            {product.category && (
-              <span style={{ background: '#f0f0f0', padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem', textTransform: 'capitalize' }}>
-                {product.category}
-              </span>
-            )}
-            {product.color && (
-              <span style={{ background: '#f0f0f0', padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.85rem', textTransform: 'capitalize' }}>
-                {product.color}
-              </span>
-            )}
+        {/* Sold overlay */}
+        {product.status === 'sold' && (
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ color: 'white', fontWeight: 700, fontSize: '1.4rem', border: '2px solid white', padding: '0.4rem 1.2rem', borderRadius: '4px', letterSpacing: '0.1em' }}>SOLD</span>
           </div>
+        )}
 
-          <p style={{ fontSize: '2rem', fontWeight: 'bold', margin: 0 }}>₹{product.selling_price}</p>
+        {/* Back button */}
+        <button onClick={() => navigate(-1)} style={{
+          position: 'absolute', top: '1rem', left: '1rem',
+          background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(6px)',
+          border: 'none', color: 'white',
+          width: '38px', height: '38px', borderRadius: '50%',
+          cursor: 'pointer', fontSize: '1rem',
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>←</button>
 
-          <p style={{ color: product.status === 'available' ? 'green' : 'red', fontWeight: 'bold', margin: 0 }}>
-            {product.status === 'available' ? '✅ Available' : '❌ Sold'}
-          </p>
+        {/* Wishlist button on image */}
+        <button onClick={toggleWishlist} style={{
+          position: 'absolute', top: '1rem', right: '1rem',
+          background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(6px)',
+          border: 'none', color: isWishlisted ? '#ff6b8a' : 'white',
+          width: '38px', height: '38px', borderRadius: '50%',
+          cursor: 'pointer', fontSize: '1.1rem',
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          {isWishlisted ? '❤️' : '♡'}
+        </button>
+      </div>
 
-          {product.status === 'available' && (
-            <button
-              onClick={toggleWishlist}
-              style={{
-                padding: '0.8rem',
-                background: isWishlisted() ? '#e91e63' : 'white',
-                color: isWishlisted() ? 'white' : '#e91e63',
-                border: '2px solid #e91e63',
-                borderRadius: '8px',
-                fontSize: '1rem',
-                cursor: 'pointer',
-                fontWeight: 'bold'
-              }}
-            >
-              {isWishlisted() ? '❤️ Added to Wishlist' : '🤍 Add to Wishlist'}
-            </button>
-          )}
+      {/* Details card — slides up */}
+      <div style={{
+        background: 'var(--bg)',
+        borderRadius: '20px 20px 0 0',
+        marginTop: '-20px',
+        position: 'relative',
+        zIndex: 10,
+        padding: '1.5rem 1.2rem',
+        minHeight: '40vh',
+        boxShadow: '0 -4px 20px rgba(0,0,0,0.08)'
+      }}>
+        {/* Drag handle */}
+        <div style={{ width: '40px', height: '4px', background: 'var(--border)', borderRadius: '2px', margin: '0 auto 1.2rem' }} />
 
-          {wishlist.length > 0 && (
-            <button
-              onClick={() => navigate('/wishlist')}
-              style={{ padding: '0.8rem', background: '#333', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1rem', cursor: 'pointer' }}
-            >
-              View Wishlist ({wishlist.length}) →
-            </button>
-          )}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.8rem' }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', color: 'var(--text)', lineHeight: 1.3, flex: 1, marginRight: '1rem' }}>
+            {product.name}
+          </h2>
+          <p style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--gold)', flexShrink: 0 }}>₹{product.selling_price}</p>
         </div>
+
+        {/* Tags */}
+        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '1.2rem' }}>
+          {product.category && (
+            <span style={{ background: '#F0EAE0', color: 'var(--text-muted)', padding: '0.25rem 0.7rem', borderRadius: '20px', fontSize: '0.8rem', textTransform: 'capitalize' }}>
+              {product.category}
+            </span>
+          )}
+          {product.color && (
+            <span style={{ background: '#F0EAE0', color: 'var(--text-muted)', padding: '0.25rem 0.7rem', borderRadius: '20px', fontSize: '0.8rem', textTransform: 'capitalize' }}>
+              {product.color}
+            </span>
+          )}
+          <span style={{
+            padding: '0.25rem 0.7rem', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 600,
+            background: product.status === 'available' ? '#E8F5E9' : '#FFEBEE',
+            color: product.status === 'available' ? '#2E7D32' : '#C62828'
+          }}>
+            {product.status === 'available' ? '✓ Available' : '✗ Sold'}
+          </span>
+        </div>
+
+        {/* CTAs */}
+        {product.status === 'available' && (
+          <button onClick={toggleWishlist} style={{
+            width: '100%', padding: '0.9rem',
+            background: isWishlisted ? 'var(--rose)' : 'white',
+            color: isWishlisted ? 'white' : 'var(--rose)',
+            border: '2px solid var(--rose)',
+            borderRadius: '12px', fontSize: '0.95rem',
+            cursor: 'pointer', fontWeight: 600, marginBottom: '0.7rem',
+            transition: 'all 0.2s'
+          }}>
+            {isWishlisted ? '❤️  Added to Wishlist' : '♡  Add to Wishlist'}
+          </button>
+        )}
+
+        {wishlist.length > 0 && (
+          <button onClick={() => navigate('/wishlist')} style={{
+            width: '100%', padding: '0.9rem',
+            background: 'var(--primary)', color: 'white',
+            border: 'none', borderRadius: '12px',
+            fontSize: '0.95rem', cursor: 'pointer', fontWeight: 600
+          }}>
+            View Wishlist ({wishlist.length}) →
+          </button>
+        )}
       </div>
     </div>
   )

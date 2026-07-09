@@ -10,13 +10,13 @@ export default function WishlistPage() {
     setWishlist(saved)
   }, [])
 
-  function removeFromWishlist(id) {
+  function remove(id) {
     const updated = wishlist.filter(w => w.id !== id)
     setWishlist(updated)
     localStorage.setItem('wishlist', JSON.stringify(updated))
   }
 
-  function clearWishlist() {
+  function clear() {
     setWishlist([])
     localStorage.removeItem('wishlist')
   }
@@ -24,64 +24,53 @@ export default function WishlistPage() {
   const total = wishlist.reduce((sum, p) => sum + parseFloat(p.selling_price || 0), 0)
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '1.5rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-        <button onClick={() => navigate('/')} style={{ background: 'none', border: '1px solid #ccc', padding: '0.4rem 0.8rem', borderRadius: '8px', cursor: 'pointer' }}>
-          ← Back
-        </button>
-        <h2 style={{ margin: 0 }}>My Wishlist ({wishlist.length} items)</h2>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', maxWidth: '500px', margin: '0 auto', display: 'flex', flexDirection: 'column' }}>
+
+      {/* Header */}
+      <div style={{ padding: '1rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '1rem', background: 'var(--primary)', position: 'sticky', top: 0, zIndex: 10 }}>
+        <button onClick={() => navigate('/')} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', width: '34px', height: '34px', borderRadius: '50%', cursor: 'pointer', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>←</button>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', color: 'white', flex: 1 }}>My Wishlist</h2>
+        {wishlist.length > 0 && (
+          <button onClick={clear} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem', cursor: 'pointer' }}>Clear all</button>
+        )}
       </div>
 
       {wishlist.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '3rem', color: '#888' }}>
-          <p style={{ fontSize: '1.2rem' }}>Your wishlist is empty</p>
-          <button onClick={() => navigate('/')} style={{ marginTop: '1rem', padding: '0.6rem 1.5rem', background: '#333', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
-            Browse Products
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', textAlign: 'center' }}>
+          <p style={{ fontSize: '3rem', marginBottom: '1rem' }}>♡</p>
+          <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '1rem' }}>Your wishlist is empty</p>
+          <button onClick={() => navigate('/')} style={{ padding: '0.8rem 2rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer', fontWeight: 600 }}>
+            Browse Collection
           </button>
         </div>
       ) : (
         <>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+          {/* Items */}
+          <div style={{ flex: 1, padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
             {wishlist.map(product => (
-              <div key={product.id} style={{ display: 'flex', gap: '1rem', border: '1px solid #eee', borderRadius: '12px', overflow: 'hidden', alignItems: 'center' }}>
+              <div key={product.id} style={{ display: 'flex', gap: '0.8rem', background: 'white', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
                 {product.image_url
-                  ? <img src={product.image_url} alt={product.name} style={{ width: '100px', height: '100px', objectFit: 'cover', flexShrink: 0 }} />
-                  : <div style={{ width: '100px', height: '100px', background: '#f5f5f5', flexShrink: 0 }} />
+                  ? <img src={product.image_url} alt={product.name} style={{ width: '80px', height: '80px', objectFit: 'cover', flexShrink: 0 }} />
+                  : <div style={{ width: '80px', height: '80px', background: 'var(--border)', flexShrink: 0 }} />
                 }
-                <div style={{ flex: 1, padding: '0.5rem' }}>
-                  <h3 style={{ margin: '0 0 0.3rem' }}>{product.name}</h3>
-                  <p style={{ margin: '0.2rem 0', color: '#888', fontSize: '0.85rem', textTransform: 'capitalize' }}>{product.category} · {product.color}</p>
-                  <p style={{ margin: '0.3rem 0', fontWeight: 'bold' }}>₹{product.selling_price}</p>
+                <div style={{ flex: 1, padding: '0.7rem 0', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '0.2rem' }}>
+                  <p style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text)' }}>{product.name}</p>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'capitalize' }}>{product.category} · {product.color}</p>
+                  <p style={{ fontWeight: 700, color: 'var(--gold)', fontSize: '0.95rem' }}>₹{product.selling_price}</p>
                 </div>
-                <button
-                  onClick={() => removeFromWishlist(product.id)}
-                  style={{ marginRight: '1rem', background: 'none', border: '1px solid #ff4444', color: '#ff4444', padding: '0.4rem 0.8rem', borderRadius: '8px', cursor: 'pointer' }}
-                >
-                  Remove
-                </button>
+                <button onClick={() => remove(product.id)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', padding: '0 1rem', cursor: 'pointer', fontSize: '1.3rem', flexShrink: 0 }}>×</button>
               </div>
             ))}
           </div>
 
-          <div style={{ border: '1px solid #eee', borderRadius: '12px', padding: '1rem', marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '1.1rem' }}>
-              <span>Total</span>
-              <span>₹{total}</span>
+          {/* Bottom CTA */}
+          <div style={{ padding: '1rem', borderTop: '1px solid var(--border)', background: 'white' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', padding: '0 0.2rem' }}>
+              <span style={{ color: 'var(--text-muted)' }}>{wishlist.length} items</span>
+              <span style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text)' }}>₹{total}</span>
             </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            <button
-              onClick={clearWishlist}
-              style={{ flex: 1, padding: '0.8rem', background: 'white', border: '1px solid #ccc', borderRadius: '8px', cursor: 'pointer' }}
-            >
-              Clear Wishlist
-            </button>
-            <button
-              onClick={() => navigate('/order')}
-              style={{ flex: 2, padding: '0.8rem', background: '#333', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
-            >
-              Place Order →
+            <button onClick={() => navigate('/order')} style={{ width: '100%', padding: '1rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '12px', fontSize: '1rem', cursor: 'pointer', fontWeight: 700 }}>
+              Reserve These Items →
             </button>
           </div>
         </>

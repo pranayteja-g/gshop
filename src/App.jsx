@@ -1,42 +1,21 @@
-import { useState } from 'react'
-
-const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
-const UPLOAD_PRESET = 'gshopimages'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminAddProduct from './pages/admin/AdminAddProduct'
+import CustomerView from './pages/customer/CustomerView'
+import WishlistPage from './pages/customer/WishlistPage'
+import OrderPage from './pages/customer/OrderPage'
 
 function App() {
-  const [imageUrl, setImageUrl] = useState(null)
-  const [uploading, setUploading] = useState(false)
-
-  async function handleUpload(e) {
-    const file = e.target.files[0]
-    if (!file) return
-
-    setUploading(true)
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('upload_preset', UPLOAD_PRESET)
-
-    const res = await fetch(
-      `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
-      { method: 'POST', body: formData }
-    )
-    const data = await res.json()
-    setImageUrl(data.secure_url)
-    setUploading(false)
-  }
-
   return (
-    <div style={{ padding: '2rem' }}>
-      <h2>Cloudinary Test</h2>
-      <input type="file" accept="image/*" onChange={handleUpload} />
-      {uploading && <p>Uploading...</p>}
-      {imageUrl && (
-        <>
-          <p>✅ Cloudinary connected!</p>
-          <img src={imageUrl} alt="test" style={{ width: '300px', marginTop: '1rem' }} />
-        </>
-      )}
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<CustomerView />} />
+        <Route path="/wishlist" element={<WishlistPage />} />
+        <Route path="/order" element={<OrderPage />} />
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/add" element={<AdminAddProduct />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 

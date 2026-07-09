@@ -31,6 +31,11 @@ export default function AdminDashboard() {
     if (!error) fetchProducts()
   }
 
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    navigate('/admin/login')
+  }
+
   async function deleteProduct(id) {
     if (!confirm('Are you sure you want to delete this product?')) return
     const { error } = await supabase.from('products').delete().eq('id', id)
@@ -41,9 +46,28 @@ export default function AdminDashboard() {
 
   return (
     <div style={{ padding: '2rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h2>Admin Dashboard ({products.length} products)</h2>
-        <button onClick={() => navigate('/admin/add')}>+ Add Product</button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <h2 style={{ margin: 0 }}>Admin Dashboard ({products.length} products)</h2>
+        <div style={{ display: 'flex', gap: '0.8rem' }}>
+          <button
+            onClick={() => navigate('/admin/orders')}
+            style={{ padding: '0.6rem 1rem', background: '#4CAF50', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+          >
+            📋 View Orders
+          </button>
+          <button
+            onClick={() => navigate('/admin/add')}
+            style={{ padding: '0.6rem 1rem', background: '#333', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+          >
+            + Add Product
+          </button>
+          <button
+            onClick={handleLogout}
+            style={{ padding: '0.6rem 1rem', background: 'white', border: '1px solid #ccc', borderRadius: '8px', cursor: 'pointer' }}
+          >
+            Logout
+          </button>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1.5rem' }}>
@@ -71,6 +95,12 @@ export default function AdminDashboard() {
                   style={{ background: 'red', color: 'white', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '4px', cursor: 'pointer' }}
                 >
                   Delete
+                </button>
+                <button
+                  onClick={() => navigate(`/admin/edit/${product.id}`)}
+                  style={{ background: '#2196F3', color: 'white', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '4px', cursor: 'pointer' }}
+                >
+                  Edit
                 </button>
               </div>
             </div>

@@ -7,6 +7,7 @@ export default function CustomerView() {
     const [loading, setLoading] = useState(true)
     const [filter, setFilter] = useState('all')
     const [wishlist, setWishlist] = useState([])
+    const [search, setSearch] = useState('')
     const navigate = useNavigate()
 
     useEffect(() => {
@@ -43,15 +44,39 @@ export default function CustomerView() {
 
     const categories = ['all', ...new Set(products.map(p => p.category).filter(Boolean))]
 
-    const filtered = filter === 'all'
-        ? products
-        : products.filter(p => p.category === filter)
+    const filtered = products.filter(p => {
+        const matchesCategory = filter === 'all' || p.category === filter
+        const matchesSearch = search === '' ||
+            p.name.toLowerCase().includes(search.toLowerCase()) ||
+            (p.color && p.color.toLowerCase().includes(search.toLowerCase())) ||
+            (p.category && p.category.toLowerCase().includes(search.toLowerCase()))
+        return matchesCategory && matchesSearch
+    })
 
     if (loading) return <p style={{ padding: '2rem' }}>Loading products...</p>
 
     return (
         <div style={{ padding: '1rem', maxWidth: '1200px', margin: '0 auto' }}>
             <h1 style={{ textAlign: 'center', marginBottom: '1rem' }}>Our Collection</h1>
+
+            {/* Search bar */}
+            <div style={{ margin: '1rem 0', display: 'flex', justifyContent: 'center' }}>
+                <input
+                    type="text"
+                    placeholder="Search by name, color, category..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    style={{
+                        width: '100%',
+                        maxWidth: '500px',
+                        padding: '0.8rem 1rem',
+                        borderRadius: '25px',
+                        border: '1px solid #ddd',
+                        fontSize: '1rem',
+                        outline: 'none'
+                    }}
+                />
+            </div>
 
             {/* Wishlist count */}
             {wishlist.length > 0 && (
@@ -86,10 +111,21 @@ export default function CustomerView() {
                 ))}
             </div>
 
+            {/* No results */}
+            {filtered.length === 0 && (
+                <p style={{ textAlign: 'center', color: '#888', marginTop: '2rem' }}>
+                    No products found for "{search}"
+                </p>
+            )}
+
             {/* Products grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.5rem' }}>
                 {filtered.map(product => (
-                    <div key={product.id} style={{ border: '1px solid #eee', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+                    <div
+                        key={product.id}
+                        onClick={() => navigate(`/product/${product.id}`)}
+                        style={{ border: '1px solid #eee', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', cursor: 'pointer' }}
+                    >
                         <div style={{ position: 'relative' }}>
                             {product.image_url
                                 ? <img src={product.image_url} alt={product.name} style={{ width: '100%', height: '250px', objectFit: 'cover' }} />
@@ -101,7 +137,7 @@ export default function CustomerView() {
                                 </div>
                             )}
                             <button
-                                onClick={() => toggleWishlist(product)}
+                                onClick={(e) => { e.stopPropagation(); toggleWishlist(product) }}
                                 style={{ position: 'absolute', top: '8px', right: '8px', background: 'white', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', fontSize: '1.2rem' }}
                             >
                                 {isWishlisted(product.id) ? '❤️' : '🤍'}

@@ -10,6 +10,7 @@ import AdminOrders from './pages/admin/AdminOrders'
 import AdminEditProduct from './pages/admin/AdminEditProduct'
 import ProductDetail from './pages/customer/ProductDetail'
 import AdminImportExport from './pages/admin/AdminImportExport'
+import AdminNewOrder from './pages/admin/AdminNewOrder'
 
 function App() {
   return (
@@ -31,9 +32,12 @@ function App() {
         } />
         <Route path="/admin/edit/:id" element={
           <AdminRoute><AdminEditProduct /></AdminRoute>
-        } />4
+        } />
         <Route path="/admin/import" element={
           <AdminRoute><AdminImportExport /></AdminRoute>
+        } />
+        <Route path="/admin/new-order" element={
+          <AdminRoute><AdminNewOrder /></AdminRoute>
         } />
       </Routes>
     </BrowserRouter>

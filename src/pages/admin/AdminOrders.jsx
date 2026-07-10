@@ -180,6 +180,7 @@ export default function AdminOrders() {
                       <p style={{ fontWeight: 700, color: 'var(--text)', fontSize: '0.95rem', marginBottom: '0.2rem' }}>{order.customer_name}</p>
                       <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>📞 {order.customer_phone}</p>
                       {order.customer_email && <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>✉️ {order.customer_email}</p>}
+                      {order.payment_method && <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>💳 {order.payment_method}</p>}
                     </div>
                     <p style={{ fontWeight: 700, color: 'var(--gold)', fontSize: '1.1rem' }}>₹{order.total_amount}</p>
                   </div>

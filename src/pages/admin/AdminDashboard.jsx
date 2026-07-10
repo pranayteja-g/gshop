@@ -62,6 +62,7 @@ export default function AdminDashboard() {
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             {[
               { label: '+ Add Product', path: '/admin/add', bg: 'var(--gold)' },
+              { label: '🛍 New Sale', path: '/admin/new-order', bg: '#2E7D32' },
               { label: '📋 Orders', path: '/admin/orders', bg: 'rgba(255,255,255,0.15)' },
               { label: '⬆⬇ Import / Export', path: '/admin/import', bg: 'rgba(255,255,255,0.15)' },
             ].map(btn => (

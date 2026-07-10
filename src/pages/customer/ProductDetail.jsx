@@ -9,13 +9,30 @@ export default function ProductDetail() {
   const [loading, setLoading] = useState(true)
   const [wishlist, setWishlist] = useState([])
   const [activeImg, setActiveImg] = useState(0)
+  const [fullscreen, setFullscreen] = useState(false)
   const galleryRef = useRef(null)
+  const fullscreenRef = useRef(null)
 
   useEffect(() => {
     fetchProduct()
     const saved = JSON.parse(localStorage.getItem('wishlist') || '[]')
     setWishlist(saved)
   }, [])
+
+  // Lock background scroll while the fullscreen viewer is open,
+  // and jump the fullscreen gallery to whichever image was showing.
+  useEffect(() => {
+    if (fullscreen) {
+      document.body.style.overflow = 'hidden'
+      requestAnimationFrame(() => {
+        const el = fullscreenRef.current
+        if (el) el.scrollTo({ left: activeImg * el.clientWidth })
+      })
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [fullscreen])
 
   async function fetchProduct() {
     const { data, error } = await supabase.from('products').select('*').eq('id', id).single()
@@ -37,8 +54,22 @@ export default function ProductDetail() {
     setActiveImg(idx)
   }
 
+  function handleFullscreenScroll() {
+    const el = fullscreenRef.current
+    if (!el) return
+    const idx = Math.round(el.scrollLeft / el.clientWidth)
+    setActiveImg(idx)
+  }
+
   function scrollToImage(idx) {
     const el = galleryRef.current
+    if (!el) return
+    el.scrollTo({ left: idx * el.clientWidth, behavior: 'smooth' })
+    setActiveImg(idx)
+  }
+
+  function scrollFullscreenTo(idx) {
+    const el = fullscreenRef.current
     if (!el) return
     el.scrollTo({ left: idx * el.clientWidth, behavior: 'smooth' })
     setActiveImg(idx)
@@ -85,13 +116,26 @@ export default function ProductDetail() {
                   key={idx}
                   src={url}
                   alt={`${product.name} ${idx + 1}`}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', flexShrink: 0, scrollSnapAlign: 'start' }}
+                  onClick={() => setFullscreen(true)}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', flexShrink: 0, scrollSnapAlign: 'start', cursor: 'zoom-in' }}
                 />
               ))}
             </div>
           )
           : <div style={{ width: '100%', height: '100%', background: 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>No image</div>
         }
+
+        {/* Expand hint */}
+        {galleryImages.length > 0 && (
+          <button onClick={() => setFullscreen(true)} style={{
+            position: 'absolute', bottom: '14px', right: '1rem',
+            background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(6px)',
+            border: 'none', color: 'white',
+            width: '34px', height: '34px', borderRadius: '50%',
+            cursor: 'pointer', fontSize: '1rem',
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>⤢</button>
+        )}
 
         {/* Dot indicators */}
         {galleryImages.length > 1 && (
@@ -220,6 +264,76 @@ export default function ProductDetail() {
           </button>
         )}
       </div>
+
+      {/* Fullscreen image viewer */}
+      {fullscreen && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1000,
+          background: 'black',
+          display: 'flex', flexDirection: 'column'
+        }}>
+          <div
+            ref={fullscreenRef}
+            onScroll={handleFullscreenScroll}
+            style={{
+              display: 'flex', width: '100%', height: '100%',
+              overflowX: 'auto', scrollSnapType: 'x mandatory',
+              scrollbarWidth: 'none'
+            }}
+          >
+            {galleryImages.map((url, idx) => (
+              <div key={idx} style={{
+                width: '100%', height: '100%', flexShrink: 0, scrollSnapAlign: 'start',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                <img
+                  src={url}
+                  alt={`${product.name} ${idx + 1}`}
+                  style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' }}
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Close button */}
+          <button onClick={() => setFullscreen(false)} style={{
+            position: 'absolute', top: '1rem', right: '1rem',
+            background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(6px)',
+            border: 'none', color: 'white',
+            width: '38px', height: '38px', borderRadius: '50%',
+            cursor: 'pointer', fontSize: '1.1rem',
+            display: 'flex', alignItems: 'center', justifyContent: 'center'
+          }}>×</button>
+
+          {/* Counter */}
+          {galleryImages.length > 1 && (
+            <span style={{
+              position: 'absolute', top: '1.1rem', left: '50%', transform: 'translateX(-50%)',
+              color: 'white', fontSize: '0.85rem', fontWeight: 600
+            }}>
+              {activeImg + 1} / {galleryImages.length}
+            </span>
+          )}
+
+          {/* Dot indicators */}
+          {galleryImages.length > 1 && (
+            <div style={{ position: 'absolute', bottom: '1.5rem', left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: '0.4rem' }}>
+              {galleryImages.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => scrollFullscreenTo(idx)}
+                  style={{
+                    width: activeImg === idx ? '18px' : '6px', height: '6px', borderRadius: '3px',
+                    border: 'none', cursor: 'pointer', padding: 0,
+                    background: activeImg === idx ? 'white' : 'rgba(255,255,255,0.4)',
+                    transition: 'width 0.2s'
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

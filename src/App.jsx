@@ -9,6 +9,7 @@ import AdminRoute from './components/AdminRoute'
 import AdminOrders from './pages/admin/AdminOrders'
 import AdminEditProduct from './pages/admin/AdminEditProduct'
 import ProductDetail from './pages/customer/ProductDetail'
+import AdminImportExport from './pages/admin/AdminImportExport'
 
 function App() {
   return (
@@ -30,6 +31,9 @@ function App() {
         } />
         <Route path="/admin/edit/:id" element={
           <AdminRoute><AdminEditProduct /></AdminRoute>
+        } />4
+        <Route path="/admin/import" element={
+          <AdminRoute><AdminImportExport /></AdminRoute>
         } />
       </Routes>
     </BrowserRouter>

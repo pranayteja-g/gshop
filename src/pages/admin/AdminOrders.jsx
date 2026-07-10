@@ -64,6 +64,25 @@ export default function AdminOrders() {
     setUpdating(null)
   }
 
+  async function markAsPaid(order) {
+    setUpdating(order.id)
+    const { data: updated, error } = await supabase
+      .from('orders')
+      .update({ payment_status: 'paid', amount_paid: order.total_amount })
+      .eq('id', order.id)
+      .select()
+
+    if (error) {
+      console.error('Failed to mark order as paid:', error)
+      alert(`Could not update payment: ${error.message}`)
+    } else if (!updated || updated.length === 0) {
+      alert('Update was blocked (no rows changed). This is usually a Supabase RLS policy issue.')
+    }
+
+    await fetchOrders()
+    setUpdating(null)
+  }
+
   function formatDate(ts) {
     return new Date(ts).toLocaleString('en-IN', {
       day: 'numeric', month: 'short',
@@ -77,7 +96,11 @@ export default function AdminOrders() {
 
   const totalRevenue = orders
     .filter(o => o.status === 'completed')
-    .reduce((sum, o) => sum + parseFloat(o.total_amount || 0), 0)
+    .reduce((sum, o) => sum + parseFloat(o.payment_status ? (o.amount_paid || 0) : (o.total_amount || 0)), 0)
+
+  const outstandingDues = orders
+    .filter(o => o.payment_status === 'partial' || o.payment_status === 'unpaid')
+    .reduce((sum, o) => sum + Math.max(0, parseFloat(o.total_amount || 0) - parseFloat(o.amount_paid || 0)), 0)
 
   const counts = {
     pending: orders.filter(o => o.status === 'pending').length,
@@ -122,15 +145,21 @@ export default function AdminOrders() {
       <div style={{ maxWidth: '700px', margin: '0 auto', padding: '1rem' }}>
 
         {/* Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.7rem', marginBottom: '1.2rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: outstandingDues > 0 ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)', gap: '0.7rem', marginBottom: '1.2rem' }}>
           <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '12px', padding: '0.9rem 1rem' }}>
             <p style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--gold)', marginBottom: '0.1rem' }}>₹{totalRevenue}</p>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Completed Revenue</p>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Collected Revenue</p>
           </div>
           <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '12px', padding: '0.9rem 1rem' }}>
             <p style={{ fontSize: '1.5rem', fontWeight: 700, color: '#F59000', marginBottom: '0.1rem' }}>{counts.pending}</p>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pending Action</p>
           </div>
+          {outstandingDues > 0 && (
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '12px', padding: '0.9rem 1rem' }}>
+              <p style={{ fontSize: '1.5rem', fontWeight: 700, color: '#C62828', marginBottom: '0.1rem' }}>₹{outstandingDues}</p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Outstanding Dues</p>
+            </div>
+          )}
         </div>
 
         {/* Status filter tabs */}
@@ -162,6 +191,7 @@ export default function AdminOrders() {
               const statusCfg = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending
               const actions = getActions(order)
               const isUpdating = updating === order.id
+              const showPaymentAction = order.payment_status === 'partial' || order.payment_status === 'unpaid'
 
               return (
                 <div key={order.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
@@ -182,11 +212,23 @@ export default function AdminOrders() {
                       {order.customer_email && <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>✉️ {order.customer_email}</p>}
                       {order.payment_method && <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>💳 {order.payment_method}</p>}
                     </div>
-                    <p style={{ fontWeight: 700, color: 'var(--gold)', fontSize: '1.1rem' }}>₹{order.total_amount}</p>
+                    <div style={{ textAlign: 'right' }}>
+                      <p style={{ fontWeight: 700, color: 'var(--gold)', fontSize: '1.1rem' }}>₹{order.total_amount}</p>
+                      {order.payment_status && order.payment_status !== 'paid' && (
+                        <p style={{
+                          fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
+                          color: order.payment_status === 'partial' ? '#F59000' : '#C62828', marginTop: '0.2rem'
+                        }}>
+                          {order.payment_status === 'partial'
+                            ? `₹${(order.total_amount - (order.amount_paid || 0))} due`
+                            : 'Unpaid'}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   {/* Items */}
-                  <div style={{ padding: '0.8rem 1rem', background: 'var(--bg)', borderBottom: actions.length > 0 ? '1px solid var(--border)' : 'none' }}>
+                  <div style={{ padding: '0.8rem 1rem', background: 'var(--bg)', borderBottom: (actions.length > 0 || showPaymentAction) ? '1px solid var(--border)' : 'none' }}>
                     {order.items?.map((item, j) => (
                       <div key={j} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.3rem 0', fontSize: '0.85rem', borderBottom: j < order.items.length - 1 ? '1px solid var(--border)' : 'none' }}>
                         <span style={{ color: 'var(--text)' }}>{item.name}</span>
@@ -196,7 +238,7 @@ export default function AdminOrders() {
                   </div>
 
                   {/* Action buttons */}
-                  {actions.length > 0 && (
+                  {(actions.length > 0 || showPaymentAction) && (
                     <div style={{ padding: '0.8rem 1rem', display: 'flex', gap: '0.5rem' }}>
                       {actions.map(action => (
                         <button
@@ -213,6 +255,20 @@ export default function AdminOrders() {
                           {isUpdating ? '...' : action.label}
                         </button>
                       ))}
+                      {showPaymentAction && (
+                        <button
+                          onClick={() => markAsPaid(order)}
+                          disabled={isUpdating}
+                          style={{
+                            flex: 1, padding: '0.6rem', border: 'none', borderRadius: '8px',
+                            background: '#2E7D32', color: 'white',
+                            fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer',
+                            opacity: isUpdating ? 0.6 : 1
+                          }}
+                        >
+                          {isUpdating ? '...' : '✓ Mark as Paid'}
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

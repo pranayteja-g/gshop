@@ -21,7 +21,7 @@ export default function AdminNewOrder() {
   const [loadingProducts, setLoadingProducts] = useState(true)
   const [search, setSearch] = useState('')
   const [cart, setCart] = useState({}) // { [productId]: quantity }
-  const [form, setForm] = useState({ name: '', phone: '', email: '', payment_method: 'Cash' })
+  const [form, setForm] = useState({ name: '', phone: '', email: '', payment_method: 'Cash', payment_status: 'paid', amount_paid: '' })
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState(null)
 
@@ -82,6 +82,19 @@ export default function AdminNewOrder() {
       setMessage({ type: 'error', text: 'Add at least one product to the sale.' })
       return
     }
+    let amountPaid = 0
+    if (form.payment_status === 'paid') {
+      amountPaid = total
+    } else if (form.payment_status === 'partial') {
+      amountPaid = parseFloat(form.amount_paid)
+      if (isNaN(amountPaid) || amountPaid <= 0 || amountPaid >= total) {
+        setMessage({ type: 'error', text: 'Enter an amount paid that is more than ₹0 and less than the total.' })
+        return
+      }
+    } else {
+      amountPaid = 0
+    }
+
     setSaving(true)
     setMessage(null)
     try {
@@ -98,7 +111,9 @@ export default function AdminNewOrder() {
         customer_email: form.email || null,
         items,
         total_amount: total,
-        payment_method: form.payment_method,
+        payment_method: form.payment_status === 'unpaid' ? null : form.payment_method,
+        payment_status: form.payment_status,
+        amount_paid: amountPaid,
         status: 'completed'
       }])
       if (orderError) throw orderError
@@ -116,7 +131,7 @@ export default function AdminNewOrder() {
 
       setMessage({ type: 'success', text: 'Sale recorded and stock updated!' })
       setCart({})
-      setForm({ name: '', phone: '', email: '', payment_method: 'Cash' })
+      setForm({ name: '', phone: '', email: '', payment_method: 'Cash', payment_status: 'paid', amount_paid: '' })
       await fetchProducts()
     } catch (err) {
       setMessage({ type: 'error', text: err.message })
@@ -232,26 +247,76 @@ export default function AdminNewOrder() {
               <input name="email" placeholder="Email (optional)" value={form.email} onChange={handleFormChange} style={inputStyle} />
             </div>
             <div>
-              <label style={labelStyle}>Payment Method *</label>
+              <label style={labelStyle}>Payment Status *</label>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                {['Cash', 'UPI', 'Card'].map(method => (
+                {[
+                  { key: 'paid', label: 'Paid', color: '#2E7D32' },
+                  { key: 'partial', label: 'Partial', color: '#F59000' },
+                  { key: 'unpaid', label: 'Unpaid', color: '#C62828' },
+                ].map(opt => (
                   <button
-                    key={method}
+                    key={opt.key}
                     type="button"
-                    onClick={() => setForm({ ...form, payment_method: method })}
+                    onClick={() => setForm({ ...form, payment_status: opt.key })}
                     style={{
                       flex: 1, padding: '0.7rem', borderRadius: '10px', cursor: 'pointer',
-                      border: `1.5px solid ${form.payment_method === method ? 'var(--primary)' : 'var(--border)'}`,
-                      background: form.payment_method === method ? 'var(--primary)' : 'white',
-                      color: form.payment_method === method ? 'white' : 'var(--text-muted)',
+                      border: `1.5px solid ${form.payment_status === opt.key ? opt.color : 'var(--border)'}`,
+                      background: form.payment_status === opt.key ? opt.color : 'white',
+                      color: form.payment_status === opt.key ? 'white' : 'var(--text-muted)',
                       fontWeight: 600, fontSize: '0.85rem'
                     }}
                   >
-                    {method}
+                    {opt.label}
                   </button>
                 ))}
               </div>
             </div>
+
+            {form.payment_status === 'partial' && (
+              <div>
+                <label style={labelStyle}>Amount Paid Now *</label>
+                <input
+                  name="amount_paid" type="number" min="0" step="0.01"
+                  placeholder="0" value={form.amount_paid} onChange={handleFormChange}
+                  required style={inputStyle}
+                />
+                {total > 0 && form.amount_paid && !isNaN(parseFloat(form.amount_paid)) && (
+                  <p style={{ fontSize: '0.78rem', color: '#C62828', marginTop: '0.4rem' }}>
+                    ₹{Math.max(0, total - parseFloat(form.amount_paid))} will remain outstanding
+                  </p>
+                )}
+              </div>
+            )}
+
+            {form.payment_status !== 'unpaid' && (
+              <div>
+                <label style={labelStyle}>Payment Method *</label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  {['Cash', 'UPI', 'Card'].map(method => (
+                    <button
+                      key={method}
+                      type="button"
+                      onClick={() => setForm({ ...form, payment_method: method })}
+                      style={{
+                        flex: 1, padding: '0.7rem', borderRadius: '10px', cursor: 'pointer',
+                        border: `1.5px solid ${form.payment_method === method ? 'var(--primary)' : 'var(--border)'}`,
+                        background: form.payment_method === method ? 'var(--primary)' : 'white',
+                        color: form.payment_method === method ? 'white' : 'var(--text-muted)',
+                        fontWeight: 600, fontSize: '0.85rem'
+                      }}
+                    >
+                      {method}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {form.payment_status === 'unpaid' && (
+              <p style={{ fontSize: '0.8rem', color: '#C62828', background: '#FFEBEE', padding: '0.6rem 0.8rem', borderRadius: '8px' }}>
+                Full amount of ₹{total} will be recorded as outstanding.
+              </p>
+            )}
           </div>
 
           <button type="submit" disabled={saving || cartEntries.length === 0} style={{
@@ -259,7 +324,7 @@ export default function AdminNewOrder() {
             border: 'none', borderRadius: '12px', fontSize: '1rem', cursor: 'pointer', fontWeight: 700,
             opacity: (saving || cartEntries.length === 0) ? 0.6 : 1
           }}>
-            {saving ? 'Saving...' : `Complete Sale${itemCount > 0 ? ` — ₹${total}` : ''}`}
+            {saving ? 'Saving...' : `Complete Sale${itemCount > 0 ? ` — ₹${total}` : ''}${form.payment_status !== 'paid' ? ' (Due Recorded)' : ''}`}
           </button>
         </form>
       </div>

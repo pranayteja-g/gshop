@@ -32,7 +32,7 @@ export default function OrderPage() {
     if (!error) {
       const itemList = wishlist.map(p => `• ${p.name} - ₹${p.selling_price}`).join('\n')
       const message = `New Reservation!\n\nCustomer: ${form.name}\nPhone: ${form.phone}\nEmail: ${form.email || 'N/A'}\n\nItems:\n${itemList}\n\nTotal: ₹${total}`
-      const waUrl = `https://wa.me/91XXXXXXXXXX?text=${encodeURIComponent(message)}`
+      const waUrl = `https://wa.me/916309834401?text=${encodeURIComponent(message)}`
       localStorage.removeItem('wishlist')
       setOrdered(true)
       window.open(waUrl, '_blank')

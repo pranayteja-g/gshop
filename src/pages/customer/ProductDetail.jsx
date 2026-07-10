@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 
@@ -8,6 +8,8 @@ export default function ProductDetail() {
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
   const [wishlist, setWishlist] = useState([])
+  const [activeImg, setActiveImg] = useState(0)
+  const galleryRef = useRef(null)
 
   useEffect(() => {
     fetchProduct()
@@ -28,7 +30,27 @@ export default function ProductDetail() {
     localStorage.setItem('wishlist', JSON.stringify(updated))
   }
 
+  function handleGalleryScroll() {
+    const el = galleryRef.current
+    if (!el) return
+    const idx = Math.round(el.scrollLeft / el.clientWidth)
+    setActiveImg(idx)
+  }
+
+  function scrollToImage(idx) {
+    const el = galleryRef.current
+    if (!el) return
+    el.scrollTo({ left: idx * el.clientWidth, behavior: 'smooth' })
+    setActiveImg(idx)
+  }
+
   const isWishlisted = wishlist.some(w => w.id === product?.id)
+
+  const galleryImages = product
+    ? (Array.isArray(product.images) && product.images.length > 0
+        ? product.images
+        : (product.image_url ? [product.image_url] : []))
+    : []
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--bg)' }}>
@@ -45,16 +67,64 @@ export default function ProductDetail() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', maxWidth: '500px', margin: '0 auto', position: 'relative' }}>
 
-      {/* Full bleed image */}
+      {/* Full bleed image gallery */}
       <div style={{ position: 'relative', width: '100%', aspectRatio: '3/4', maxHeight: '65vh', overflow: 'hidden' }}>
-        {product.image_url
-          ? <img src={product.image_url} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        {galleryImages.length > 0
+          ? (
+            <div
+              ref={galleryRef}
+              onScroll={handleGalleryScroll}
+              style={{
+                display: 'flex', width: '100%', height: '100%',
+                overflowX: 'auto', scrollSnapType: 'x mandatory',
+                scrollbarWidth: 'none'
+              }}
+            >
+              {galleryImages.map((url, idx) => (
+                <img
+                  key={idx}
+                  src={url}
+                  alt={`${product.name} ${idx + 1}`}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', flexShrink: 0, scrollSnapAlign: 'start' }}
+                />
+              ))}
+            </div>
+          )
           : <div style={{ width: '100%', height: '100%', background: 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>No image</div>
         }
 
+        {/* Dot indicators */}
+        {galleryImages.length > 1 && (
+          <div style={{ position: 'absolute', bottom: '14px', left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: '0.4rem' }}>
+            {galleryImages.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => scrollToImage(idx)}
+                style={{
+                  width: activeImg === idx ? '18px' : '6px', height: '6px', borderRadius: '3px',
+                  border: 'none', cursor: 'pointer', padding: 0,
+                  background: activeImg === idx ? 'white' : 'rgba(255,255,255,0.5)',
+                  transition: 'width 0.2s'
+                }}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Image counter */}
+        {galleryImages.length > 1 && (
+          <span style={{
+            position: 'absolute', top: '1rem', left: '50%', transform: 'translateX(-50%)',
+            background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(6px)', color: 'white',
+            fontSize: '0.75rem', padding: '0.25rem 0.7rem', borderRadius: '20px', fontWeight: 600
+          }}>
+            {activeImg + 1} / {galleryImages.length}
+          </span>
+        )}
+
         {/* Sold overlay */}
         {product.status === 'sold' && (
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
             <span style={{ color: 'white', fontWeight: 700, fontSize: '1.4rem', border: '2px solid white', padding: '0.4rem 1.2rem', borderRadius: '4px', letterSpacing: '0.1em' }}>SOLD</span>
           </div>
         )}

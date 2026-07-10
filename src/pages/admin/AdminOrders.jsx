@@ -46,7 +46,20 @@ export default function AdminOrders() {
     }
 
     // Update order status
-    await supabase.from('orders').update({ status: newStatus }).eq('id', order.id)
+    const { data: updated, error } = await supabase
+      .from('orders')
+      .update({ status: newStatus })
+      .eq('id', order.id)
+      .select()
+
+    if (error) {
+      console.error('Failed to update order status:', error)
+      alert(`Could not update order: ${error.message}`)
+    } else if (!updated || updated.length === 0) {
+      console.error('Update returned no rows — likely blocked by RLS policy on orders table')
+      alert('Update was blocked (no rows changed). This is usually a Supabase RLS policy issue on the orders table.')
+    }
+
     await fetchOrders()
     setUpdating(null)
   }

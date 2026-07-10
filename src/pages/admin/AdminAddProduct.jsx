@@ -21,17 +21,29 @@ const labelStyle = {
 export default function AdminAddProduct() {
   const navigate = useNavigate()
   const [form, setForm] = useState({ name: '', category: '', color: '', quantity: 1, selling_price: '', cost_price: '', status: 'available' })
-  const [image, setImage] = useState(null)
-  const [preview, setPreview] = useState(null)
+  const [images, setImages] = useState([]) // array of { file, preview }
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState(null)
 
   function handleChange(e) { setForm({ ...form, [e.target.name]: e.target.value }) }
 
   function handleImageChange(e) {
-    const file = e.target.files[0]
-    setImage(file)
-    setPreview(URL.createObjectURL(file))
+    const files = Array.from(e.target.files || [])
+    const newItems = files.map(file => ({ file, preview: URL.createObjectURL(file) }))
+    setImages(prev => [...prev, ...newItems])
+    e.target.value = '' // allow re-selecting the same file later
+  }
+
+  function removeImage(idx) {
+    setImages(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  function moveImageToFront(idx) {
+    setImages(prev => {
+      const copy = [...prev]
+      const [item] = copy.splice(idx, 1)
+      return [item, ...copy]
+    })
   }
 
   async function handleSubmit(e) {
@@ -39,27 +51,28 @@ export default function AdminAddProduct() {
     setLoading(true)
     setMessage(null)
     try {
-      let image_url = null
-      if (image) {
+      const uploadedUrls = []
+      for (const { file } of images) {
         const formData = new FormData()
-        formData.append('file', image)
+        formData.append('file', file)
         formData.append('upload_preset', UPLOAD_PRESET)
         const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, { method: 'POST', body: formData })
         const data = await res.json()
-        image_url = data.secure_url
+        if (!data.secure_url) throw new Error('Image upload failed')
+        uploadedUrls.push(data.secure_url)
       }
       const { error } = await supabase.from('products').insert([{
         ...form,
         quantity: parseInt(form.quantity),
         selling_price: parseFloat(form.selling_price),
         cost_price: parseFloat(form.cost_price),
-        image_url
+        image_url: uploadedUrls[0] || null,
+        images: uploadedUrls
       }])
       if (error) throw error
       setMessage({ type: 'success', text: 'Product added successfully!' })
       setForm({ name: '', category: '', color: '', quantity: 1, selling_price: '', cost_price: '', status: 'available' })
-      setImage(null)
-      setPreview(null)
+      setImages([])
     } catch (err) {
       setMessage({ type: 'error', text: err.message })
     }
@@ -89,19 +102,32 @@ export default function AdminAddProduct() {
 
           {/* Image upload */}
           <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '12px', padding: '1.2rem', marginBottom: '1rem' }}>
-            <label style={labelStyle}>Product Image</label>
-            {preview
-              ? <div style={{ position: 'relative', marginBottom: '0.8rem' }}>
-                  <img src={preview} alt="preview" style={{ width: '100%', maxHeight: '280px', objectFit: 'cover', borderRadius: '8px', display: 'block' }} />
-                  <button type="button" onClick={() => { setPreview(null); setImage(null) }}
-                    style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.5)', border: 'none', color: 'white', width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer', fontSize: '0.9rem' }}>×</button>
-                </div>
-              : <label htmlFor="img-upload" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '2px dashed var(--border)', borderRadius: '8px', padding: '2rem', cursor: 'pointer', marginBottom: '0.8rem', color: 'var(--text-muted)' }}>
-                  <span style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📷</span>
-                  <span style={{ fontSize: '0.9rem' }}>Tap to upload image</span>
-                </label>
-            }
-            <input id="img-upload" type="file" accept="image/*" onChange={handleImageChange} style={{ display: 'none' }} />
+            <label style={labelStyle}>Product Images {images.length > 0 && `(${images.length})`}</label>
+
+            {images.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.6rem', marginBottom: '0.8rem' }}>
+                {images.map((img, idx) => (
+                  <div key={idx} style={{ position: 'relative', aspectRatio: '1', borderRadius: '8px', overflow: 'hidden', border: idx === 0 ? '2px solid var(--gold)' : '1px solid var(--border)' }}>
+                    <img src={img.preview} alt={`preview ${idx}`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    {idx === 0 && (
+                      <span style={{ position: 'absolute', bottom: '4px', left: '4px', background: 'var(--gold)', color: 'white', fontSize: '0.62rem', padding: '0.1rem 0.4rem', borderRadius: '4px', fontWeight: 700 }}>COVER</span>
+                    )}
+                    <button type="button" onClick={() => removeImage(idx)}
+                      style={{ position: 'absolute', top: '4px', right: '4px', background: 'rgba(0,0,0,0.55)', border: 'none', color: 'white', width: '22px', height: '22px', borderRadius: '50%', cursor: 'pointer', fontSize: '0.75rem', lineHeight: 1 }}>×</button>
+                    {idx !== 0 && (
+                      <button type="button" onClick={() => moveImageToFront(idx)}
+                        style={{ position: 'absolute', bottom: '4px', right: '4px', background: 'rgba(0,0,0,0.55)', border: 'none', color: 'white', fontSize: '0.62rem', padding: '0.1rem 0.35rem', borderRadius: '4px', cursor: 'pointer' }}>Set cover</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <label htmlFor="img-upload" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '2px dashed var(--border)', borderRadius: '8px', padding: images.length > 0 ? '1rem' : '2rem', cursor: 'pointer', color: 'var(--text-muted)' }}>
+              <span style={{ fontSize: '1.6rem', marginBottom: '0.3rem' }}>📷</span>
+              <span style={{ fontSize: '0.85rem' }}>{images.length > 0 ? 'Add more images' : 'Tap to upload images'}</span>
+            </label>
+            <input id="img-upload" type="file" accept="image/*" multiple onChange={handleImageChange} style={{ display: 'none' }} />
           </div>
 
           {/* Product details */}

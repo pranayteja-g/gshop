@@ -24,7 +24,7 @@ export default function WishlistPage() {
   const total = wishlist.reduce((sum, p) => sum + parseFloat(p.selling_price || 0), 0)
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', maxWidth: '500px', margin: '0 auto', display: 'flex', flexDirection: 'column' }}>
+    <div className="page-narrow" style={{ background: 'var(--bg)' }}>
 
       {/* Header */}
       <div style={{ padding: '1rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '1rem', background: 'var(--primary)', position: 'sticky', top: 0, zIndex: 10 }}>

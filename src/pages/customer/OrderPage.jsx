@@ -65,7 +65,7 @@ export default function OrderPage() {
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', maxWidth: '500px', margin: '0 auto', display: 'flex', flexDirection: 'column' }}>
+    <div className="page-narrow" style={{ background: 'var(--bg)' }}>
 
       {/* Header */}
       <div style={{ padding: '1rem', background: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '1rem', position: 'sticky', top: 0, zIndex: 10 }}>

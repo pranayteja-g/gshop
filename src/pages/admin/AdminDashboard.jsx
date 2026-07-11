@@ -7,6 +7,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const navigate = useNavigate()
+  const [search, setSearch] = useState('')
 
   useEffect(() => { fetchProducts() }, [])
 
@@ -35,7 +36,14 @@ export default function AdminDashboard() {
   }
 
   const categories = ['all', ...new Set(products.map(p => p.category).filter(Boolean))]
-  const filtered = filter === 'all' ? products : products.filter(p => p.category === filter)
+  const filtered = products.filter(p => {
+    const matchesCategory = filter === 'all' || p.category === filter
+    const matchesSearch = search === '' ||
+      p.name?.toLowerCase().includes(search.toLowerCase()) ||
+      p.color?.toLowerCase().includes(search.toLowerCase()) ||
+      p.category?.toLowerCase().includes(search.toLowerCase())
+    return matchesCategory && matchesSearch
+  })
   const availableCount = products.filter(p => p.status === 'available').length
   const soldCount = products.filter(p => p.status === 'sold').length
 
@@ -46,11 +54,10 @@ export default function AdminDashboard() {
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-body)' }}>
-
+    <div className="admin-page">
       {/* Header */}
       <div style={{ background: 'var(--primary)', padding: '1rem 1.2rem', position: 'sticky', top: 0, zIndex: 100 }}>
-        <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+        <div className="admin-inner">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem' }}>
             <h1 style={{ fontFamily: 'var(--font-display)', color: '#F9F6F2', fontSize: '1.3rem' }}>✦ Admin Panel</h1>
             <button onClick={handleLogout} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', padding: '0.4rem 0.9rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem' }}>
@@ -74,7 +81,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div style={{ maxWidth: '900px', margin: '0 auto', padding: '1rem' }}>
+      <div className="admin-inner">
 
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.7rem', marginBottom: '1.2rem' }}>
@@ -88,6 +95,26 @@ export default function AdminDashboard() {
               <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{stat.label}</p>
             </div>
           ))}
+        </div>
+
+        {/* Search */}
+        <div style={{ marginBottom: '0.8rem' }}>
+          <input
+            type="text"
+            placeholder="Search by name, color, category..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '0.7rem 1rem',
+              borderRadius: '10px',
+              border: '1px solid var(--border)',
+              background: 'white',
+              color: 'var(--text)',
+              fontSize: '0.9rem',
+              outline: 'none'
+            }}
+          />
         </div>
 
         {/* Category filter */}
